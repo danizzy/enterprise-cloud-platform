@@ -1,0 +1,134 @@
+name: Deploy Java Application
+
+
+on:
+
+  push:
+
+    branches:
+
+      - main
+
+
+
+jobs:
+
+
+  build-deploy:
+
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+
+    # Checkout Code
+
+    - name: Checkout code
+
+      uses: actions/checkout@v4
+
+
+
+    # Setup Java
+
+    - name: Setup Java 17
+
+      uses: actions/setup-java@v4
+
+      with:
+
+        java-version: '17'
+
+        distribution: 'temurin'
+
+
+
+    # Maven Build
+
+    - name: Build Application
+
+      run: |
+
+        cd app
+
+        mvn clean package
+
+
+
+    # Configure AWS
+
+    - name: Configure AWS Credentials
+
+      uses: aws-actions/configure-aws-credentials@v4
+
+      with:
+
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+        aws-region: us-east-1
+
+
+
+    # Login to ECR
+
+    - name: Login to Amazon ECR
+
+      uses: aws-actions/amazon-ecr-login@v2
+
+
+
+    # Build Docker Image
+
+    - name: Build Docker Image
+
+      run: |
+
+        docker build \
+
+        -t enterprise-cloud-app \
+
+        ./app
+
+
+
+    # Tag Image
+
+    - name: Tag Image
+
+      run: |
+
+        docker tag enterprise-cloud-app:latest \
+
+        ${{ secrets.ECR_REPOSITORY }}:latest
+
+
+
+    # Push Image
+
+    - name: Push Image
+
+      run: |
+
+        docker push \
+
+        ${{ secrets.ECR_REPOSITORY }}:latest
+
+
+
+    # Deploy ECS
+
+    - name: Update ECS Service
+
+      run: |
+
+        aws ecs update-service \
+
+        --cluster enterprise-cloud-platform-dev-cluster \
+
+        --service enterprise-cloud-platform-dev-service \
+
+        --force-new-deployment

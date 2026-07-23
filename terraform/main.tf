@@ -152,3 +152,24 @@ module "secrets" {
   db_password = var.db_password
 
 }
+
+module "monitoring" {
+
+source = "./modules/monitoring"
+
+
+project_name = var.project_name
+
+
+environment = var.environment
+
+
+ecs_cluster_name = module.ecs.cluster_id
+
+
+ecs_service_name = module.ecs.service_name
+
+
+database_identifier = module.rds.database_identifier
+
+}
